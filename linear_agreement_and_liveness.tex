@@ -112,6 +112,12 @@
   style=acmnumeric,
   ]{biblatex}
 
+%% Remove auto generated acm text
+\setcopyright{none}
+\settopmatter{printacmref=false} % Removes citation information below abstract
+\renewcommand\footnotetextcopyrightpermission[1]{} % removes footnote with conference information in first column
+\pagestyle{plain}
+
 %% Declare bibliography sources (one \addbibresource command per source)
 \addbibresource{software.bib}
 \addbibresource{sample-base.bib}
