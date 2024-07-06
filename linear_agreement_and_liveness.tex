@@ -37,7 +37,7 @@
 %%
 %% The "title" command has an optional parameter,
 %% allowing the author to define a "short title" to be used in page headers.
-\title{Liveness-Probleme durch Optimierungen in Konsensusprotokollen} % Original: Linear Agreement and Liveness 
+\title{Auswirkungen von Optimierungen in Konsensprotokollen auf die Systemstabilität} % Original: Linear Agreement and Liveness 
 
 %%
 %% The "author" command and its associated commands are used to define
@@ -198,12 +198,14 @@ Ein bewährter Ansatz, um zuverlässige Dienste zu implementieren, ist State Mac
   \item \textbf{Liveness (Lebendigkeit)}: Alle angeforderten Clientbefehle werden innerhalb einer angemessen Zeit ausgeführt.
 \end{itemize}
 
-Die Implementierung des SMR-Ansatzes gemäß \cite{smr-schneider} setzt deterministische Zustandsmaschinen voraus. Das heißt alle korrekten Replikate starten im selben Zustand und gehen bei gleichen Clientbefehlen in den gleichen Zustand über. Um die Sicherheit im SMR-System zu gewährleisten, müssen sich alle korrekten Replikate auf eine einheitliche Reihenfolge einigen, in der sie die Clientoperation auf ihrer Zustandsmaschine ausführen. Hierzu wird ein Konsensusalgorithmus verwendet, der sicherstellt, dass trotz fehlerhafter Replikate eine Einigung erzielt und dem Client geantwortet wird.
+Bei der Liveness Property nochmal schauen, weil eigentlich heißt es ja, dass das System fortschreitet und nicht ins Stocken kommt. Eventuell überarbeiten.
 
-Es existieren eine Vielzahl unterschiedlicher SMR-Protokolle, die sich in ihrem Konsensusalgorithmus und der Art und Weise, wie sie die Lebendigkeit des Systems sicherstellen, unterscheiden. In dieser Arbeit werden die beiden Protokolle Practical Byzantine Fault Tolerance (PBFT)\cite{pbft} und HotStuff\cite{hotstuff} näher betrachtet.
+Die Implementierung des SMR-Ansatzes gemäß \cite{smr-schneider} setzt deterministische Zustandsmaschinen voraus. Das heißt alle korrekten Replikate starten im selben Zustand und gehen bei gleichen Clientbefehlen in den gleichen Zustand über. Um die Sicherheit im SMR-System zu gewährleisten, müssen sich alle korrekten Replikate auf eine einheitliche Reihenfolge einigen, in der sie die Clientoperation auf ihrer Zustandsmaschine ausführen. Hierzu wird ein Konsensalgorithmus verwendet, der sicherstellt, dass trotz fehlerhafter Replikate eine Einigung erzielt und dem Client geantwortet wird.
+
+Es existieren eine Vielzahl unterschiedlicher SMR-Protokolle, die sich in ihrem Konsensalgorithmus und der Art und Weise, wie sie die Lebendigkeit des Systems sicherstellen, unterscheiden. In dieser Arbeit werden die beiden Protokolle Practical Byzantine Fault Tolerance (PBFT)\cite{pbft} und HotStuff\cite{hotstuff} näher betrachtet.
 
 Hier noch Quorumzertifikat erklären...
-Eventuell sagen, dass ein Konsensusalgorithmus aus mehreren Phasen besteht, in der ersten wird ein Vorschlag gemacht, dann voten alle und dann führen alle das Ergebnis aus (commit).
+Eventuell sagen, dass ein Konsensalgorithmus aus mehreren Phasen besteht, in der ersten wird ein Vorschlag gemacht, dann voten alle und dann führen alle das Ergebnis aus (commit).
 
 \subsection{Byzantinische Fehlertoleranz}
 
@@ -217,40 +219,86 @@ Eine besondere Herausforderung stellen Byzantinische Fehler dar, bei denen sich 
 
 \section{Practical Byzantine Fault Tolerance}
 
-\subsection{PBFT-Konsensusalgorithmus}
+Practical Byzantine Fault Tolerance (PBFT) \cite{pbft} von Castro und Liskov war das erste BFT-SMR-Protokoll, dass in einem partiell synchronen Netzwerk effizient genug war, um in der Praxis eingesetzt zu werden. Im Folgenden wird der Konsensalgorithmus von PBFT vorgestellt und eine Optimierung des Protokolls erläutert. Es wird gezeigt, dass diese Optimierung die Systemlebendigkeit unter einem spezifischen Angriff beeinträchtigt. Abschließend wird eine Lösung präsentiert, um dieses Problem zu beheben.
 
-Der Konsensusalgorithmus von PBFT besteht aus den Phasen \emph{Pre-prepare}, \emph{Prepare} und \emph{Commit} (siehe Abbildung \ref{fig:pbft-normal}). Er wird jedes Mal ausgeführt, wenn ein Client seine Anfrage an alle Replikate im verteilten System gesendet hat.
+\subsection{PBFT-Konsensalgorithmus}
+
+Der Konsensalgorithmus von PBFT besteht aus den Phasen \emph{Pre-prepare}, \emph{Prepare} und \emph{Commit} (siehe Abbildung \ref{fig:pbft-normal}). Er beginnt damit, dass ein Client seine Anfrage an alle Replikate im verteilten System sendet.
 
 \textbf{Pre-Prepare-Phase.} Sobald das Anführer-Replikat die Nachricht des Clients erhalten und auf Gültigkeit überprüft hat vergibt es der Nachricht eine Sequenznummer. Diese bestimmt die Reihenfolge, in der Clientoperationen auf allen Zustandsmaschinen ausgeführt werden sollen. Anschließend erstellt es eine Pre-Prepare-Nachricht bestehend aus der Clientoperation, der Sequenznummer und der aktuellen View. Diese Nachricht wird signiert und an alle Backups im System verteilt.
 
 \textbf{Prepare-Phase.} Alle Backups stimmen darüber ab, ob die vom Anführer vorgeschlagene Clientoperation ausgeführt werden soll. Hierzu überprüft jedes Backup die Pre-Prepare-Nachricht auf ihre Gültigkeit und auf mögliche Konflikte mit ihrem aktuellen Zustand und der ursprünglichen Anfrage des Clients. Hat ein Backup die Pre-Prepare-Nachricht akzeptiert, gibt es ihre Stimme ab, indem es eine Prepare-Nachricht an alle anderen Replikate (einschließlich des Anführers) sendet. Jedes Replikat sammelt 2f gültige Prepare-Nachrichten von unterschiedlichen Replikaten (einschließlich seiner eigenen, falls vorhanden). Zusammen mit der Pre-Prepare-Nachricht des Anführers ergibt das ein Quorum von $2f+1$ Stimmen.
 
-\textbf{Commit-Phase.} Hat ein Replikat ein Prepare-Quorum erreicht, signalisiert es dies, indem es eine Commit-Nachricht an alle anderen Replikate sendet. Jedes Replikat sammelt ein Quorum aus $2f+1$ gültigen Commit-Nachrichten von unterschiedlichen Replikaten (einschließlich seiner eigenen, falls vorhanden). Hat ein Replikat ein Commit-Quorum erreicht führt es die Clientoperation auf seiner Zustandsmaschine aus und sendet das Ergebnis zurück an den Client.
+\textbf{Commit-Phase.} Hat ein Replikat ein Prepare-Quorum erreicht, signalisiert es dies, indem es eine Commit-Nachricht an alle anderen Replikate sendet. Jedes Replikat sammelt ein Quorum von $2f+1$ gültigen Commit-Nachrichten von unterschiedlichen Replikaten (einschließlich seiner eigenen, falls vorhanden). Hat ein Replikat ein Commit-Quorum erreicht führt es die Operation auf seiner Zustandsmaschine aus und sendet das Ergebnis zurück an den Client.
 
-Ein Client wartet auf $f+1$ identische Antworten von unterschiedlichen Replikaten, bevor er die Antwort akzeptiert.
+Ein Client wartet auf $f+1$ übereinstimmende Antworten von unterschiedlichen Replikaten, bevor er die Antwort akzeptiert.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{pbft-normal.png}
-  \caption{PBFT-Konsensusalgorithmus im fehlerfreien Fall}
-  \Description{PBFT-Konsensusalgorithmus im fehlerfreien Fall}
+  \caption{PBFT-Konsensalgorithmus im fehlerfreien Fall}
+  \Description{PBFT-Konsensalgorithmus im fehlerfreien Fall}
   \label{fig:pbft-normal}
 \end{figure}
 
 \subsection{Read-Only Optimierung}
 
-Der Konsensusalgorithmus von PBFT hat eine hohe Nachrichtenkomplexität von $O(n^2)$. Deshalb haben die Autoren mehrere Optimierungen vorgestellt, die das PBFT-Protokoll effizienter machen sollen \cite{pbft-optimization}. Eine davon ist die Read-Only Optimierung. Sie erlaubt es Leseanfragen ohne Durchlauf des Konsensusalgorithmus beantworten zu dürfen. Die Überlegung hierbei ist, dass Leseoperationen den Zustand des Systems nicht verändern und deshalb von den Replikaten sofort ausgeführt werden sollen. Damit der Client aber keinen alten 
-
-
-Die Bedingung hierfür ist allerdings wieder, dass alle vorherigen Clientanfragen sich im globalen Zustand „committed“ befinden und vom Replikat ausgeführt worden sind. Der Client wartet auf 2f+1 übereinstimmende Antworten und wiederholt die Anfrage als normale read-write Anfrage, wenn er nicht genügend Antworten innerhalb einer bestimmten Zeit erhalten hat.
+Der Konsensalgorithmus von PBFT hat eine hohe Nachrichtenkomplexität von $O(n^2)$. Deshalb haben die Autoren von PBFT mehrere Optimierungen vorgestellt, die das Protokoll effizienter machen sollen \cite{pbft-optimization}. Eine davon ist die Read-Only Optimierung. Sie erlaubt es Leseanfragen ohne Durchlauf des Konsensalgorithmus beantworten zu dürfen. Die Überlegung hierbei ist, dass Leseoperationen den Zustand des Systems nicht verändern und deshalb sofort ausgeführt werden können. Die Read-Only Optimierung setzt allerdings zwei Bedingungen voraus:
+\begin{enumerate}
+  \item Ein Replikat muss alle vorherigen Operationen festgeschrieben (committed) haben, bevor es eine Read-Only-Anfrage ausführen darf.
+  \item Der Client muss bei allen Anfragen auf $2f+1$ übereinstimmende Antworten von unterschiedlichen Replikaten warten, bevor er das Ergebnis akzeptiert, unabhängig davon, ob der Konsensalgorithmus durchlaufen wurde oder nicht. 
+\end{enumerate}
+Abbildung \ref{fig:pbft-optimization} zeigt, dass ein Client, der wie im normalen Fall nur $f+1$ Antworten akzeptiert, Gefahr läuft, einen veralteten Stand zu lesen. Das liegt daran, dass korrekte Replikate mit der Ausführung festgeschriebener Clientoperationen zurückliegen können und mit einem alten Ergebnis antworten (siehe Abbildung 2a). Zusätzlich kann eine Kombination aus byzantinisch fehlerhaften Replikaten, die absichtlich ein altes Ergebnis liefern, und zurückliegenden korrekten Replikaten dazu führen, dass ein Client trotz $2f+1$ identischer Antworten einen veralteten Stand sieht (siehe Abbildung 2b). Deshalb ist Bedingung (2) auch bei Schreibanfragen notwendig, obwohl diese den Konsensalgorithmus durchlaufen. Wenn ein Client nicht genügend übereinstimmende Antworten erhalten hat, wiederholt er die Leseanfrage als Read-Write-Anfrage, die den Konsensalgorithmus durchlaufen muss.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{pbft-optimierung-update-quorum.png}
+  \includegraphics[width=\linewidth]{pbft_read_quorum_erklärung.png}
   \caption{Grund}
   \Description{Grund}
   \label{fig:pbft-optimization}
 \end{figure}
+
+\subsection{Verlust der Systemlebendigkeit durch Read-Only Optimierung}
+
+Die Bedingung, dass ein Client bei allen Anfragen auf $2f+1$ übereinstimmende Antworten von unterschiedlichen Replikaten warten muss, bevor er das Ergebnis akzeptieren darf, kann bei einem bestimmten Angriff dazu führen, dass die Lebendigkeit des Systems verletzt wird \cite{pbft-liveness-problem}. Der Angriff (siehe Abbildung \ref{fig:read-only-problem}) beinhaltet f byzantinisch fehlerhafte Replikate, darunter den Anfüher und zielt darauf ab, dass kein Client genügend übereinstimmende Antworten sammeln kann. Sobald eine Schreiboperation angefragt wurde, isoliert der Anführer f korrekte Backups, indem er ihnen keine Pre-Prepare Nachricht sendet. 
+ 
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{read-only-problem.png}
+  \caption{Grund}
+  \Description{Grund}
+  \label{fig:read-only-problem}
+\end{figure}
+
+\section{HotStuff}
+
+HotStuff\cite{hotstuff} wurde entwickelt, um ein einfaches BFT-SMR-Protokoll bereitzustellen, das hohe Skalierbarkeit bietet. Im Gegensatz zu PBFT, wo jedes Replikat ein Quorum aus signierten Nachrichten unterschiedlicher Replikate sammeln muss, übernimmt bei HotStuff nur der Anführer diese Aufgabe. Aus den Nachrichten der Replikate erstellt der Anführer ein Quorum-Zertifikat (QZ). Ein QZ ist ein Nachweis dafür, dass während einer bestimmten Phase des Konsensalgorithmus ein Quorum von 2f+1 Replikaten für eine Clientoperation gestimmt haben. In HotStuff werden ausstehende Clientbefehle in Blöcken gespeichert. Jeder Block enthält einen oder mehrere Clientbefehle sowie eine Referenz auf seinen Vorgängerblock. Dadurch entsteht eine geordnete Kette von Clientoperationen, die auf allen Zustandsmaschinen ausgeführt werden. Jedes QZ enthält einen zugehörigen Block mit einem oder mehreren Clientoperationen.
+
+\subsection{HotStuff-Konsensalgorithmus}
+
+Der Konsensalgorithmus von HotStuff besteht aus den Phasen \emph{prepare}, \emph{pre-commit}, \emph{commit} und \emph{decide} (siehe Abbildung \ref{fig:hotstuff}). Zu Beginn jeder Prepare-Phase findet ein View-Wechsel statt, wodurch jeder Durchlauf mit einem neuen Anführer startet.
+
+\textbf{Prepare-Phase.} Das neue Anführer-Replikat bekommt von allen anderen Replikaten New-View-Nachrichten geschickt, aus denen es das höchste bekannte Prepare-QZ im System ermittelt. Dieses wird als High-QZ bezeichnet und enthält den aktuellsten Block der Kette an Clientoperationen. Sobald der Anführer eine neue Clientanfrage erhält, erstellt er einen neuen Block mit dieser Anfrage und setzt den Block aus High-QZ als Vorgänger. Anschließend verschickt er eine Prepare-Nachricht an alle Replikate, bestehend aus der aktuellen View, den neuen Block als Vorschlag und High-QZ als Quorum-Nachweis. Jedes Replikat überprüft die Nachricht auf ihre Gültigkeit und akzeptiert den neuen Block, wenn er eine logische Erweiterung der Kette an Clientoperationen darstellt. Hat ein Replikat die Prepare-Nachricht akzeptiert, gibt es ihre Stimme ab, indem es eine Prepare-Vote-Nachricht an den Anführer zurücksendet.
+
+\textbf{Pre-Commit-Phase.} Der Anführer sammelt ein Quorum von 2f+1 Prepare-Vote-Nachrichten und kombiniert diese zu einem Prepare-QZ. Anschließend verschickt er eine Pre-Commit-Nachricht mit dem Prepare-QZ an alle Replikate. Diese antworten mit einer Pre-Commit-Vote-Nachricht.
+
+\textbf{Commit-Phase.} Die Commit-Phase ist ähnlich zur Pre-Commit-Phase. Wenn der Anführer 2f+1 Pre-Commit-Vote-Nachrichten erhalten hat, kombiniert er diese zu einem Pre-Commit-QZ und verschickt es in einer Commit-Nachricht an alle Replikate. Diese antworten mit einer Commit-Vote-Nachricht. In dieser Phase sperrt ein Replikat seinen Zustand auf dem vorgeschlagenen Block. Das heißt es akzeptiert nur noch einen neuen Block, wenn er den aktuell gesperrten Block als Vorgänger hat oder sich in einer höheren View befindet als dieser. Das ist notwendig, damit keine widersprüchlichen Clientoperationen akzeptiert werden können (Sicherheitsgarantie).
+
+\textbf{Decide-Phase.} Sobald der Anführer ein Quorum aus Commit-Vote-Nachrichten gesammelt hat, kombiniert er diese zu einem Commit-QZ und verschickt es in einer Decide-Nachricht an alle Replikate. Durch die Decide-Nachricht weiß ein Replikat, dass der vorgeschlagene Knoten bzw. Clientbefehl festgeschrieben (committed) und auf der Zustandsmaschine ausgeführt werden darf. Nachdem es die Antwort an den Client gesendet hat, erhöht es den View-Zähler und startet eine neue View durch das Versenden einer New-View-Nachricht an den neuen Anführer.
+
+Ebenso wie in PBFT wartet der Client auf f+1 identische Antworten von unterschiedlichen Replikaten, bis er eine Antwort akzeptiert.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{hotstuff.png}
+  \caption{Grund}
+  \Description{Grund}
+  \label{fig:hotstuff}
+\end{figure}
+
+\subsection{Chained HotStuff}
+
+Betrachtet man die einzelnen Phasen des HotStuff Konsensalgorithmus, dann fällt auf, dass sie sich sehr ähneln. In jeder Phase werden sammelt der Anführer genügend Vote-Nachrichten, um ein Quorumzertifikat zu bilden. Die Autoren von HotStuff machen sich diese 
 
 
 %%
