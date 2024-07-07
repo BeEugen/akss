@@ -65,7 +65,7 @@
 \renewcommand{\abstractname}{Kurzfassung}
 
 %% Change the bibliography title
-\renewcommand{\refname}{Bibliographie}
+\renewcommand{\refname}{Literaturverzeichnis}
 
 %%
 %% The abstract is a short summary of the work to be presented in the
@@ -197,6 +197,7 @@ Ein bewährter Ansatz, um zuverlässige Dienste zu implementieren, ist State Mac
   \item \textbf{Safety (Sicherheit)}: Alle korrekten Replikate führen dieselbe Abfolge von Operationen auf ihrer Zustandsmaschine aus.
   \item \textbf{Liveness (Lebendigkeit)}: Alle angeforderten Clientbefehle werden innerhalb einer angemessen Zeit ausgeführt.
 \end{itemize}
+Schaue dir hierzu nochmal die definition in Beegees an.
 
 Bei der Liveness Property nochmal schauen, weil eigentlich heißt es ja, dass das System fortschreitet und nicht ins Stocken kommt. Eventuell überarbeiten.
 
@@ -204,8 +205,7 @@ Die Implementierung des SMR-Ansatzes gemäß \cite{smr-schneider} setzt determin
 
 Es existieren eine Vielzahl unterschiedlicher SMR-Protokolle, die sich in ihrem Konsensalgorithmus und der Art und Weise, wie sie die Lebendigkeit des Systems sicherstellen, unterscheiden. In dieser Arbeit werden die beiden Protokolle Practical Byzantine Fault Tolerance (PBFT)\cite{pbft} und HotStuff\cite{hotstuff} näher betrachtet.
 
-Hier noch Quorumzertifikat erklären...
-Eventuell sagen, dass ein Konsensalgorithmus aus mehreren Phasen besteht, in der ersten wird ein Vorschlag gemacht, dann voten alle und dann führen alle das Ergebnis aus (commit).
+Eventuell sagen, dass ein Konsensalgorithmus aus mehreren Phasen besteht, in der ersten wird ein Vorschlag gemacht, dann voten alle und dann führen alle das Ergebnis aus (commit). Eventuell auch View Change erklären und dann den Unterschied zwischen LSO usw. (siehe BeeGees). Dann kann ich bei System Modell zB erklären, dass PBFT ein stable leader hat und beegees ein LSO. und sagen dass ein Konsensalgorithmus aus mehreren Phasen besteht. Schaue dir dazu die Quellen von dem Musterstudent an.
 
 \subsection{Byzantinische Fehlertoleranz}
 
@@ -246,10 +246,11 @@ Ein Client wartet auf $f+1$ übereinstimmende Antworten von unterschiedlichen Re
 Der Konsensalgorithmus von PBFT hat eine hohe Nachrichtenkomplexität von $O(n^2)$. Deshalb haben die Autoren von PBFT mehrere Optimierungen vorgestellt, die das Protokoll effizienter machen sollen \cite{pbft-optimization}. Eine davon ist die Read-Only Optimierung. Sie erlaubt es Leseanfragen ohne Durchlauf des Konsensalgorithmus beantworten zu dürfen. Die Überlegung hierbei ist, dass Leseoperationen den Zustand des Systems nicht verändern und deshalb sofort ausgeführt werden können. Die Read-Only Optimierung setzt allerdings zwei Bedingungen voraus:
 \begin{enumerate}
   \item Ein Replikat muss alle vorherigen Operationen festgeschrieben (committed) haben, bevor es eine Read-Only-Anfrage ausführen darf.
-  \item Der Client muss bei allen Anfragen auf $2f+1$ übereinstimmende Antworten von unterschiedlichen Replikaten warten, bevor er das Ergebnis akzeptiert, unabhängig davon, ob der Konsensalgorithmus durchlaufen wurde oder nicht. 
+  \item Der Client muss bei allen Anfragen (Read und Write) auf $2f+1$ übereinstimmende Antworten von unterschiedlichen Replikaten warten, bevor er das Ergebnis akzeptiert, unabhängig davon, ob der Konsensalgorithmus durchlaufen wurde oder nicht. 
 \end{enumerate}
-Abbildung \ref{fig:pbft-optimization} zeigt, dass ein Client, der wie im normalen Fall nur $f+1$ Antworten akzeptiert, Gefahr läuft, einen veralteten Stand zu lesen. Das liegt daran, dass korrekte Replikate mit der Ausführung festgeschriebener Clientoperationen zurückliegen können und mit einem alten Ergebnis antworten (siehe Abbildung 2a). Zusätzlich kann eine Kombination aus byzantinisch fehlerhaften Replikaten, die absichtlich ein altes Ergebnis liefern, und zurückliegenden korrekten Replikaten dazu führen, dass ein Client trotz $2f+1$ identischer Antworten einen veralteten Stand sieht (siehe Abbildung 2b). Deshalb ist Bedingung (2) auch bei Schreibanfragen notwendig, obwohl diese den Konsensalgorithmus durchlaufen. Wenn ein Client nicht genügend übereinstimmende Antworten erhalten hat, wiederholt er die Leseanfrage als Read-Write-Anfrage, die den Konsensalgorithmus durchlaufen muss.
+Abbildung \ref{fig:pbft-optimization} zeigt, dass ein Client, der wie im nicht-optimierten Fall nur $f+1$ Antworten akzeptiert, Gefahr läuft, einen veralteten Stand zu lesen. Das liegt daran, dass korrekte Replikate mit der Ausführung festgeschriebener Clientoperationen zurückliegen können und mit einem alten Ergebnis antworten (siehe Abbildung 2a). Zusätzlich kann eine Kombination aus byzantinisch fehlerhaften Replikaten, die absichtlich ein altes Ergebnis liefern, und zurückliegenden korrekten Replikaten dazu führen, dass ein Client trotz $2f+1$ identischer Antworten einen veralteten Stand sieht (siehe Abbildung 2b). Deshalb ist Bedingung (2) auch bei Schreibanfragen notwendig, obwohl diese den Konsensalgorithmus durchlaufen. Wenn ein Client nicht genügend übereinstimmende Antworten erhalten hat, wiederholt er die Leseanfrage als Read-Write-Anfrage, die den Konsensalgorithmus durchlaufen muss.
 
+wechsle überall wo du statt commit festschreiben geschrieben hast zu committet.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{pbft_read_quorum_erklärung.png}
@@ -258,10 +259,14 @@ Abbildung \ref{fig:pbft-optimization} zeigt, dass ein Client, der wie im normale
   \label{fig:pbft-optimization}
 \end{figure}
 
-\subsection{Verlust der Systemlebendigkeit durch Read-Only Optimierung}
+\subsection{Angriff auf Read-Only Optimierung}
 
-Die Bedingung, dass ein Client bei allen Anfragen auf $2f+1$ übereinstimmende Antworten von unterschiedlichen Replikaten warten muss, bevor er das Ergebnis akzeptieren darf, kann bei einem bestimmten Angriff dazu führen, dass die Lebendigkeit des Systems verletzt wird \cite{pbft-liveness-problem}. Der Angriff (siehe Abbildung \ref{fig:read-only-problem}) beinhaltet f byzantinisch fehlerhafte Replikate, darunter den Anfüher und zielt darauf ab, dass kein Client genügend übereinstimmende Antworten sammeln kann. Sobald eine Schreiboperation angefragt wurde, isoliert der Anführer f korrekte Backups, indem er ihnen keine Pre-Prepare Nachricht sendet. 
- 
+Die Bedingung, dass ein Client bei allen Anfragen auf $2f+1$ übereinstimmende Antworten von unterschiedlichen Replikaten warten muss, bevor er ein Ergebnis akzeptieren darf, kann bei einem bestimmten Angriff dazu führen, dass das gesamte System blockiert wird \cite{pbft-liveness-problem}. Dieser Angriff beinhaltet f byzantinisch fehlerhafte Replikate, darunter den Anfüher und zielt darauf ab, dass kein Client genügend übereinstimmende Antworten sammeln kann, um ein Ergebnis zu akzeptieren.
+
+Im Detail verläuft der Angriff wie folgt (siehe Abbildung \ref{fig:read-only-problem}): Nach Erhalt einer Schreibanfrage, isoliert der fehlerhafte Anführer f korrekte Replikate, indem er ihnen keine Pre-Prepare Nachricht sendet. Den restlichen Replikaten verhält er sich dem Protokoll entsprechend richtig. Alle nicht-isolierten Replikate und der Anführer durchlaufen anschließend die Prepare- und Commit-Phase. Währenddessen ignorieren die isolierten Replikate alle Prepare- und Commit-Nachrichten, weil sie keine zugehörige Pre-Prepare-Nachricht gespeichert haben. Am Ende der Commit-Phase führen alle nicht-isolierten Replikate und der Anführer die Clientoperation aus, allerdings antwortet der Anführer dem Client absichtlich nicht. Das sorgt dafür, dass der Client maximal 2f Antworten erhält (maximal, weil außer dem Anführer noch andere Replikate fehlerhaft sein können). Aufgrund der Read-Only Optimierung benötigt der Client aber 2f+1 Antworten, um ein Ergebnis zu akzeptieren. Infolgedessen wiederholt er seine Anfrage, was aber wieder zum gleichen Ergebnis führt.
+
+Um den böswilligen Anführer zu wechseln, muss ein View-Wechsel durchgeführt werden. In PBFT löst jedes korrekte Replikat, das einen fehlerhaften Anführer bemerkt hat, eine View-Change-Nachricht aus. Bei 2f+1 View-Change-Nachrichten wird der Anführer gewechselt. Dieses Quorum ist notwendig, damit keine fehlerhaften Replikate absichtlich View-Wechsel auslösen können. Bei diesem Angriff kommt es aber zu keinem Anführer-Wechsel, weil die benötigte Anzahl an View-Change-Nachrichten nicht erreicht. Diese werden nämlich nur von den f isolierten Replikaten ausgelöst, weil sich der Anführer nur diesen fehlerhaft gegenüber verhält. Als Resultat dieses Angriffs kann das System keinen Fortschritt mehr machen, was eine Verletzung der Liveness-Garantie darstellt.
+
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{read-only-problem.png}
@@ -270,21 +275,34 @@ Die Bedingung, dass ein Client bei allen Anfragen auf $2f+1$ übereinstimmende A
   \label{fig:read-only-problem}
 \end{figure}
 
+\subsection{Korrektur der Read-Only Optimierung}
+
+
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{read-only-korrektur.png}
+  \caption{Grund}
+  \Description{Grund}
+  \label{fig:read-only-korrektur}
+\end{figure}
+
+
 \section{HotStuff}
 
-HotStuff\cite{hotstuff} wurde entwickelt, um ein einfaches BFT-SMR-Protokoll bereitzustellen, das hohe Skalierbarkeit bietet. Im Gegensatz zu PBFT, wo jedes Replikat ein Quorum aus signierten Nachrichten unterschiedlicher Replikate sammeln muss, übernimmt bei HotStuff nur der Anführer diese Aufgabe. Aus den Nachrichten der Replikate erstellt der Anführer ein Quorum-Zertifikat (QZ). Ein QZ ist ein Nachweis dafür, dass während einer bestimmten Phase des Konsensalgorithmus ein Quorum von 2f+1 Replikaten für eine Clientoperation gestimmt haben. In HotStuff werden ausstehende Clientbefehle in Blöcken gespeichert. Jeder Block enthält einen oder mehrere Clientbefehle sowie eine Referenz auf seinen Vorgängerblock. Dadurch entsteht eine geordnete Kette von Clientoperationen, die auf allen Zustandsmaschinen ausgeführt werden. Jedes QZ enthält einen zugehörigen Block mit einem oder mehreren Clientoperationen.
+HotStuff\cite{hotstuff} wurde entwickelt, um ein einfaches BFT-SMR-Protokoll bereitzustellen, das hohe Skalierbarkeit bietet. Im Gegensatz zu PBFT, wo jedes Replikat ein Quorum aus signierten Nachrichten unterschiedlicher Replikate sammeln muss, übernimmt bei HotStuff nur der Anführer diese Aufgabe. Aus den Nachrichten der Replikate erstellt der Anführer ein Quorum-Zertifikat (QZ). Ein QZ ist ein Nachweis dafür, dass während einer bestimmten Phase des Konsensalgorithmus ein Quorum von 2f+1 Replikaten für eine Clientoperation gestimmt haben. In HotStuff werden Clientbefehle in Blöcken gespeichert. Jeder Block enthält einen Clientbefehl sowie eine Referenz auf seinen Vorgängerblock. Dadurch entsteht eine geordnete Kette von Clientoperationen, die auf allen Zustandsmaschinen ausgeführt werden. Jedes Quorum-Zertifikat enthält einen zugehörigen Block, mit Clientoperation.
 
 \subsection{HotStuff-Konsensalgorithmus}
 
 Der Konsensalgorithmus von HotStuff besteht aus den Phasen \emph{prepare}, \emph{pre-commit}, \emph{commit} und \emph{decide} (siehe Abbildung \ref{fig:hotstuff}). Zu Beginn jeder Prepare-Phase findet ein View-Wechsel statt, wodurch jeder Durchlauf mit einem neuen Anführer startet.
 
-\textbf{Prepare-Phase.} Das neue Anführer-Replikat bekommt von allen anderen Replikaten New-View-Nachrichten geschickt, aus denen es das höchste bekannte Prepare-QZ im System ermittelt. Dieses wird als High-QZ bezeichnet und enthält den aktuellsten Block der Kette an Clientoperationen. Sobald der Anführer eine neue Clientanfrage erhält, erstellt er einen neuen Block mit dieser Anfrage und setzt den Block aus High-QZ als Vorgänger. Anschließend verschickt er eine Prepare-Nachricht an alle Replikate, bestehend aus der aktuellen View, den neuen Block als Vorschlag und High-QZ als Quorum-Nachweis. Jedes Replikat überprüft die Nachricht auf ihre Gültigkeit und akzeptiert den neuen Block, wenn er eine logische Erweiterung der Kette an Clientoperationen darstellt. Hat ein Replikat die Prepare-Nachricht akzeptiert, gibt es ihre Stimme ab, indem es eine Prepare-Vote-Nachricht an den Anführer zurücksendet.
+\textbf{Prepare-Phase.} Das neue Anführer-Replikat bekommt von allen anderen Replikaten New-View-Nachrichten geschickt, aus denen es das höchste bekannte Prepare-QZ im System ermittelt. Dieses wird als High-QZ bezeichnet und enthält den aktuellsten Block der Kette an Clientoperationen. Sobald der Anführer eine neue Clientanfrage erhält, erstellt er einen neuen Block mit dieser Anfrage und setzt den Block aus High-QZ als Vorgänger. Anschließend verschickt er eine Prepare-Nachricht an alle Replikate, bestehend aus der aktuellen View, dem neuen Block als Vorschlag und High-QZ als Nachweis für das Zustandekommen eines Quorums. Jedes Replikat überprüft die Nachricht auf ihre Gültigkeit und akzeptiert den neuen Block, wenn er eine logische Erweiterung der Kette an Clientoperationen darstellt. Hat ein Replikat die Prepare-Nachricht akzeptiert, gibt es seine Stimme ab, indem es eine Prepare-Vote-Nachricht an den Anführer sendet.
 
 \textbf{Pre-Commit-Phase.} Der Anführer sammelt ein Quorum von 2f+1 Prepare-Vote-Nachrichten und kombiniert diese zu einem Prepare-QZ. Anschließend verschickt er eine Pre-Commit-Nachricht mit dem Prepare-QZ an alle Replikate. Diese antworten mit einer Pre-Commit-Vote-Nachricht.
 
-\textbf{Commit-Phase.} Die Commit-Phase ist ähnlich zur Pre-Commit-Phase. Wenn der Anführer 2f+1 Pre-Commit-Vote-Nachrichten erhalten hat, kombiniert er diese zu einem Pre-Commit-QZ und verschickt es in einer Commit-Nachricht an alle Replikate. Diese antworten mit einer Commit-Vote-Nachricht. In dieser Phase sperrt ein Replikat seinen Zustand auf dem vorgeschlagenen Block. Das heißt es akzeptiert nur noch einen neuen Block, wenn er den aktuell gesperrten Block als Vorgänger hat oder sich in einer höheren View befindet als dieser. Das ist notwendig, damit keine widersprüchlichen Clientoperationen akzeptiert werden können (Sicherheitsgarantie).
+\textbf{Commit-Phase.} Wenn der Anführer ein Quorum von Pre-Commit-Vote-Nachrichten erhalten hat, kombiniert er diese zu einem Pre-Commit-QZ und verschickt es in einer Commit-Nachricht an alle Replikate. Diese antworten mit einer Commit-Vote-Nachricht. In dieser Phase sperrt ein Replikat seinen Zustand auf dem vorgeschlagenen Block. Das heißt es akzeptiert nur noch einen neuen Block, wenn er den aktuell gesperrten Block als Vorgänger hat oder sich in einer höheren View befindet als dieser. Das ist notwendig, damit keine widersprüchlichen Clientoperationen akzeptiert werden können (Sicherheitsgarantie).
 
-\textbf{Decide-Phase.} Sobald der Anführer ein Quorum aus Commit-Vote-Nachrichten gesammelt hat, kombiniert er diese zu einem Commit-QZ und verschickt es in einer Decide-Nachricht an alle Replikate. Durch die Decide-Nachricht weiß ein Replikat, dass der vorgeschlagene Knoten bzw. Clientbefehl festgeschrieben (committed) und auf der Zustandsmaschine ausgeführt werden darf. Nachdem es die Antwort an den Client gesendet hat, erhöht es den View-Zähler und startet eine neue View durch das Versenden einer New-View-Nachricht an den neuen Anführer.
+\textbf{Decide-Phase.} Sobald der Anführer ein Quorum von Commit-Vote-Nachrichten gesammelt hat, kombiniert er diese zu einem Commit-QZ und verschickt es in einer Decide-Nachricht an alle Replikate. Durch die Decide-Nachricht weiß ein Replikat, dass der vorgeschlagene Knoten bzw. Clientbefehl festgeschrieben (committed) und auf der Zustandsmaschine ausgeführt werden darf. Nachdem es die Operation ausgeführt und eine Antwort an den Client gesendet hat, erhöht es den View-Zähler und startet eine neue View durch das Versenden einer New-View-Nachricht an den neuen Anführer.
 
 Ebenso wie in PBFT wartet der Client auf f+1 identische Antworten von unterschiedlichen Replikaten, bis er eine Antwort akzeptiert.
 
@@ -298,7 +316,22 @@ Ebenso wie in PBFT wartet der Client auf f+1 identische Antworten von unterschie
 
 \subsection{Chained HotStuff}
 
-Betrachtet man die einzelnen Phasen des HotStuff Konsensalgorithmus, dann fällt auf, dass sie sich sehr ähneln. In jeder Phase werden sammelt der Anführer genügend Vote-Nachrichten, um ein Quorumzertifikat zu bilden. Die Autoren von HotStuff machen sich diese 
+Betrachtet man die einzelnen Phasen von HotStuff, so fällt auf, dass sie sich sehr ähneln. In jeder Phase sammelt der Anführer genügend Vote-Nachrichten, um ein Quorum-Zertifikat zu bilden. Die Autoren von HotStuff machen sich diese Eigenschaft zunutze und vereinfachen den Konsensalgorithmus. Die Idee ist, dass nach jeder Prepare-Phase ein View-Wechsel stattfindet und eine neue Clientoperation vorgeschlagen wird. Einzelne Phasen überlappen sich und werden parallel ausgeführt, indem sie ein gemeinsames Quorum-Zertifikat (Generic-QZ) als Nachweis nutzen. Dadurch entsteht eine Art Pipeline, was den Durchsatz erhöht. Diese Optimierung wird Chained HotStuff genannt und funktioniert wie folgt:
+
+Bei Chained HotStuff (siehe Abbildung) beginnt jede Prepare-Phase damit, dass der neue Anführer von View v ein Generic-QZ vom vorherigen Anführer erhält. Er erstellt einen neuen Block b mit einer neuen Clientoperation cmd1 und sendet diesen samt Generic-QZ als Vorschlag an alle Replikate. Jedes Replikat prüft den Vorschlag wie gewohnt und sendet seine Stimme zurück an den Anführer. Dieser erstellt ein neues Generic-QZ aus den Stimmen der Replikate und schickt es an den neuen Anführer der nächsten View v+1. Der Anführer von View v+1 startet ebenfalls in der Prepare-Phase, erstellt Block b+1 mit Clientoperation cmd2, lässt alle Replikate darüber abstimmen, und erstellt ein neues Generic-QZ. Allerdings dient seine Prepare-Phase auch als Pre-Commit-Phase für die vorherige View v. Der Vorgang wird kontinuierlich wiederholt, d.h. die Prepare-Phase von View v+2 dient jetzt gleichzeitig als Pre-Commit-Phase von View v+1 und als Commit-Phase für View v. Am Ende von View v4 wird cmd1 festgeschrieben (committed) und am Ende von View v5 cmd2. Alle weiteren Clientoperationen, die in diesen Phasen erstellt wurden, setzen die Pipeline auf dieselbe Weise fort.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{chained-hotstuff.png}
+  \caption{Grund}
+  \Description{Grund}
+  \label{fig:chained-hotstuff}
+\end{figure}
+
+\subsection{Angriff auf Chained HotStuff}
+
+Die Bedingung, dass ein Client bei allen Anfragen auf $2f+1$ übereinstimmende Antworten von unterschiedlichen Replikaten warten muss, bevor er ein Ergebnis akzeptieren darf, kann bei einem bestimmten Angriff dazu führen, dass die Lebendigkeit des Systems verletzt wird \cite{pbft-liveness-problem}. Dieser Angriff beinhaltet f byzantinisch fehlerhafte Replikate, darunter den Anfüher und zielt darauf ab, dass kein Client genügend übereinstimmende Antworten sammeln kann, um ein Ergebnis zu akzeptieren und somit das gesamte System blockiert wird.
+
 
 
 %%
