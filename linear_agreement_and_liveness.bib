@@ -37,6 +37,25 @@ pages = {299–319},
 numpages = {21}
 }
 
+@InProceedings{smr-leaderless,
+  author =	{Fran\c{c}a Rezende, Tuanir and Sutra, Pierre},
+  title =	{{Leaderless State-Machine Replication: Specification, Properties, Limits}},
+  booktitle =	{34th International Symposium on Distributed Computing (DISC 2020)},
+  pages =	{24:1--24:17},
+  series =	{Leibniz International Proceedings in Informatics (LIPIcs)},
+  ISBN =	{978-3-95977-168-9},
+  ISSN =	{1868-8969},
+  year =	{2020},
+  volume =	{179},
+  editor =	{Attiya, Hagit},
+  publisher =	{Schloss Dagstuhl -- Leibniz-Zentrum f{\"u}r Informatik},
+  address =	{Dagstuhl, Germany},
+  URL =		{https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.DISC.2020.24},
+  URN =		{urn:nbn:de:0030-drops-131024},
+  doi =		{10.4230/LIPIcs.DISC.2020.24},
+  annote =	{Keywords: Fault Tolerance, State Machine Replication, Consensus}
+}
+
 @article{byzantine-generals-problem,
 author = {Lamport, Leslie and Shostak, Robert and Pease, Marshall},
 title = {The Byzantine Generals Problem},
@@ -109,5 +128,73 @@ series = {PODC '19}
   pages={1-12},
   keywords={Wide area networks;Fault tolerance;Data centers;Protocols;Costs;System performance;Fault tolerant systems;Byzantine Fault Tolerance;State Machine Replication;Reads;Attack},
   doi={10.1109/SRDS53918.2021.00010}
+}
+
+@inproceedings{beegees,
+author = {Giridharan, Neil and Suri-Payer, Florian and Ding, Matthew and Howard, Heidi and Abraham, Ittai and Crooks, Natacha},
+title = {BeeGees: Stayin' Alive in Chained BFT},
+year = {2023},
+isbn = {9798400701214},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3583668.3594572},
+doi = {10.1145/3583668.3594572},
+abstract = {Modern chained Byzantine Fault Tolerant (BFT) systems leverage a combination of pipelining and leader rotation to obtain both efficiency and fairness. These protocols, however, require a sequence of three or four consecutive honest leaders to commit operations. Therefore, even simple leader failures such as crashes can weaken liveness, resulting in high commit latency or lack of commit all together. We show that, unfortunately, this vulnerability is inherent to all existing BFT protocols that rotate leaders with pipelined agreement. To resolve this liveness shortcoming we present BeeGees1, a novel chained BFT protocol that successfully commits blocks even with non-consecutive honest leaders. It does this while also maintaining quadratic word complexity with threshold signatures, linear word complexity with SNARKs, and responsiveness between consecutive honest leaders. BeeGees reduces the expected commit latency of HotStuff by a factor of three under failures, and the worst-case latency by a factor of seven.},
+booktitle = {Proceedings of the 2023 ACM Symposium on Principles of Distributed Computing},
+pages = {233–243},
+numpages = {11},
+keywords = {consensus, blockchain, BFT},
+location = {Orlando, FL, USA},
+series = {PODC '23}
+}
+
+@article{zyzzyva,
+author = {Kotla, Ramakrishna and Alvisi, Lorenzo and Dahlin, Mike and Clement, Allen and Wong, Edmund},
+title = {Zyzzyva: Speculative Byzantine fault tolerance},
+year = {2010},
+issue_date = {December 2009},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {27},
+number = {4},
+issn = {0734-2071},
+url = {https://doi.org/10.1145/1658357.1658358},
+doi = {10.1145/1658357.1658358},
+abstract = {A longstanding vision in distributed systems is to build reliable systems from unreliable components. An enticing formulation of this vision is Byzantine Fault-Tolerant (BFT) state machine replication, in which a group of servers collectively act as a correct server even if some of the servers misbehave or malfunction in arbitrary (“Byzantine”) ways. Despite this promise, practitioners hesitate to deploy BFT systems, at least partly because of the perception that BFT must impose high overheads.In this article, we present Zyzzyva, a protocol that uses speculation to reduce the cost of BFT replication. In Zyzzyva, replicas reply to a client's request without first running an expensive three-phase commit protocol to agree on the order to process requests. Instead, they optimistically adopt the order proposed by a primary server, process the request, and reply immediately to the client. If the primary is faulty, replicas can become temporarily inconsistent with one another, but clients detect inconsistencies, help correct replicas converge on a single total ordering of requests, and only rely on responses that are consistent with this total order. This approach allows Zyzzyva to reduce replication overheads to near their theoretical minima and to achieve throughputs of tens of thousands of requests per second, making BFT replication practical for a broad range of demanding services.},
+journal = {ACM Trans. Comput. Syst.},
+month = {jan},
+articleno = {7},
+numpages = {39},
+keywords = {speculative execution, replication, output commit, Byzantine fault tolerance}
+}
+
+@INPROCEEDINGS{bft-smart,
+  author={Bessani, Alysson and Sousa, João and Alchieri, Eduardo E.P.},
+  booktitle={2014 44th Annual IEEE/IFIP International Conference on Dependable Systems and Networks}, 
+  title={State Machine Replication for the Masses with BFT-SMART}, 
+  year={2014},
+  volume={},
+  number={},
+  pages={355-362},
+  keywords={Protocols;Message systems;Throughput;Computer crashes;Libraries;Robustness;Fault tolerance;state machine replication;byzantine fault tolerance},
+  doi={10.1109/DSN.2014.43}
+}
+
+@inproceedings{aardvark,
+author = {Clement, Allen and Kapritsos, Manos and Lee, Sangmin and Wang, Yang and Alvisi, Lorenzo and Dahlin, Mike and Riche, Taylor},
+title = {Upright cluster services},
+year = {2009},
+isbn = {9781605587523},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/1629575.1629602},
+doi = {10.1145/1629575.1629602},
+abstract = {The UpRight library seeks to make Byzantine fault tolerance (BFT) a simple and viable alternative to crash fault tolerance for a range of cluster services. We demonstrate UpRight by producing BFT versions of the Zookeeper lock service and the Hadoop Distributed File System (HDFS). Our design choices in UpRight favor simplifying adoption by existing applications; performance is a secondary concern. Despite these priorities, our BFT Zookeeper and BFT HDFS implementations have performance comparable with the originals while providing additional robustness.},
+booktitle = {Proceedings of the ACM SIGOPS 22nd Symposium on Operating Systems Principles},
+pages = {277–290},
+numpages = {14},
+keywords = {byzantine fault tolerance, cluster services, reliability},
+location = {Big Sky, Montana, USA},
+series = {SOSP '09}
 }
 
